@@ -1,6 +1,7 @@
 <script lang="ts">
     import { nip19 } from 'nostr-tools'
 
+    let input = '';
     let profile: Profile = {
         display_name: '',
         name: '',
@@ -8,8 +9,8 @@
         picture: '',
         website: '',
     };
-    let npub = '';
-    let pubkey = '';
+    let npubProfile = '';
+    let pubkeyProfile = '';
     let nprofile = '';
     let nprofileJson = '';
     let relaysOf10002: string[] = [];
@@ -82,16 +83,26 @@
         return messages.flat();
     };
 
-    async function showProfile() {
+    async function show() {
+        console.log('[input]', input);
+        const npub = input.startsWith('npub') ? input : nip19.npubEncode(input);
         console.log(npub);
         const { type, data } = nip19.decode(npub);
-        pubkey = data as string;
+        const pubkey = data as string;
         console.log(type, pubkey);
         if (typeof pubkey !== 'string') {
             return;
         }
         console.log(nip19.nprofileEncode({ pubkey, relays: defaultRelays }));
         const messages = await getMessagesFromRelays(pubkey);
+
+        if (messages.length === 0) {
+            console.warn('Not found');
+            return;
+        }
+
+        npubProfile = npub;
+        pubkeyProfile = pubkey;
 
         // Profile
         const profileMessages = messages.filter(x => x.kind === 0);
@@ -162,12 +173,12 @@
 <main>
     <h1>nprofile</h1>
 
-    <form on:submit|preventDefault={showProfile}>
-        <input type="text" name="npub" bind:value={npub} placeholder="npub..." size="100" required>
+    <form on:submit|preventDefault={show}>
+        <input type="text" name="npub" bind:value={input} placeholder="npub or hex" size="100" required>
         <input type="submit" value="Show">
     </form>
     
-    {#if pubkey}
+    {#if pubkeyProfile}
     <section class="profile">
         <h2>Profile</h2>
         <div>
@@ -177,8 +188,8 @@
         <div>{profile.name}</div>
         <div>{profile.nip05}</div>
         <div>{profile.website}</div>
-        <div>{npub}</div>
-        <div>{pubkey}</div>
+        <div>{npubProfile}</div>
+        <div>{pubkeyProfile}</div>
         <div class="nprofile">{nprofile}</div>
         <pre class="nprofile">{nprofileJson}</pre>
     </section>
