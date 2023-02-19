@@ -16,6 +16,7 @@
     let recommendedRelay = '';
     let relaysOf10002: string[] = [];
     let relaysOf3: Relay[] = [];
+    let contacts: Contact[] = [];
 
     const defaultRelays = [
         'wss://relay.damus.io',
@@ -154,6 +155,20 @@
         };
         nprofile = nip19.nprofileEncode(nprofileData);
         nprofileJson = JSON.stringify(nprofileData, null, 2);
+
+        // Contact
+        if (latestRelaysMessageOf3 !== undefined) {
+            contacts = latestRelaysMessageOf3.tags.map(([ tag, pubkey, relay, petname ]) => {
+                return {
+                    npub: nip19.npubEncode(pubkey),
+                    pubkey,
+                    relay,
+                    petname,
+                };
+            });
+        } else {
+            contacts = [];
+        }
     };
 
     interface Event {
@@ -184,6 +199,13 @@
         read: boolean,
         write: boolean,
     }
+
+    interface Contact {
+        npub: string,
+        pubkey: string,
+        relay: string,
+        petname: string,
+    }
 </script>
 
 <main>
@@ -211,9 +233,7 @@
 
         <div>Recommended relay: {recommendedRelay === '' ? '-' : recommendedRelay}</div>
     </section>
-    {/if}
 
-    {#if relaysOf10002.length > 0}
     <section class="relays">
         <h2>Relays (kind: 10002)</h2>
         <ul>
@@ -226,9 +246,7 @@
             {/each}
         </ul>
     </section>
-    {/if}
 
-    {#if relaysOf3.length > 0}
     <section class="relays">
         <h2>Relays (kind: 3)</h2>
         <ul>
@@ -238,6 +256,26 @@
                         <div>{relay.url}</div>
                         <div>Read: {relay.read}</div>
                         <div>Write: {relay.write}</div>
+                    </article>
+                </li>
+            {/each}
+        </ul>
+    </section>
+
+    <section class="contacts">
+        <h2>Contacts</h2>
+        <ul>
+            {#each contacts as contact}
+                <li>
+                    <article>
+                        <div>{contact.npub}</div>
+                        <div>{contact.pubkey}</div>
+                        {#if contact.relay}
+                        <div>{contact.relay}</div>
+                        {/if}
+                        {#if contact.petname}
+                        <div>{contact.petname}</div>
+                        {/if}
                     </article>
                 </li>
             {/each}
