@@ -152,7 +152,7 @@
 </script>
 
 <main>
-    <h1>Nostr profile</h1>
+    <h1>nprofile</h1>
 
     <form on:submit|preventDefault={showProfile}>
         <input type="text" bind:value={npub} placeholder="npub..." size="100" required>

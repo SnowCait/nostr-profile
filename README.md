@@ -1,1 +1,1 @@
-# nostr-profile
+# nprofile
