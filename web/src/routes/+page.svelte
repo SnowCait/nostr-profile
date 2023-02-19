@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { nip19 } from 'nostr-tools'
+    import { nip19 } from 'nostr-tools';
+    import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 
     let input = '';
     let profile: Profile = {
@@ -26,6 +28,15 @@
         'wss://nostr.holybea.com',
         'wss://relay.nostr.or.jp',
     ];
+
+    afterNavigate(async () => {
+        const p = $page.url.searchParams.get('p');
+        if (p !== null) {
+            console.log('[p]', p);
+            input = p;
+            await show();
+        }
+    });
 
     async function getMessages(relay: string, pubkey: string): Promise<Event[]> {
         return new Promise(async (resolve, reject) => {
@@ -211,8 +222,8 @@
 <main>
     <h1>nprofile</h1>
 
-    <form on:submit|preventDefault={show}>
-        <input type="text" name="npub" bind:value={input} placeholder="npub or hex" size="100" required>
+    <form>
+        <input type="text" name="p" bind:value={input} placeholder="npub or hex" size="100" required>
         <input type="submit" value="Show">
     </form>
     
@@ -268,7 +279,7 @@
             {#each contacts as contact}
                 <li>
                     <article>
-                        <div>{contact.npub}</div>
+                        <div><a href="?p={contact.npub}">{contact.npub}</a></div>
                         <div>{contact.pubkey}</div>
                         {#if contact.relay}
                         <div>{contact.relay}</div>
