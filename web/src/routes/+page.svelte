@@ -13,6 +13,7 @@
     let pubkeyProfile = '';
     let nprofile = '';
     let nprofileJson = '';
+    let recommendedRelay = '';
     let relaysOf10002: string[] = [];
     let relaysOf3: Relay[] = [];
 
@@ -45,7 +46,7 @@
                     'REQ',
                     Math.floor(Math.random() * 99999).toString(),
                     {
-                        'kinds': [ 0, 3, 10002 ],
+                        'kinds': [ 0, 2, 3, 10002 ],
                         'authors': [ pubkey ],
                     },
                 ]));
@@ -112,14 +113,27 @@
             console.log(latestProfileMessage);
             profile = JSON.parse(latestProfileMessage.content);
             console.log(profile);
+        } else {
+            console.error('Profile not found');
         }
 
         // Relays
+        const recommendedRelayMessages = messages.filter(x => x.kind === 2);
+        recommendedRelayMessages.sort((x, y) => x.created_at - y.created_at);
+        const latestRecommendedRelay = recommendedRelayMessages.find(_ => true);
+        if (latestRecommendedRelay !== undefined) {
+            recommendedRelay = latestRecommendedRelay.content;
+        } else {
+            recommendedRelay = '';
+        }
+
         const relaysMessagesOf10002 = messages.filter(x => x.kind === 10002);
         relaysMessagesOf10002.sort((x, y) => x.created_at - y.created_at);
         const latestRelaysMessageOf10002 = relaysMessagesOf10002.find(_ => true);
         if (latestRelaysMessageOf10002 !== undefined) {
             relaysOf10002 = latestRelaysMessageOf10002.tags.map(x => x[1]);
+        } else {
+            relaysOf10002 = [];
         }
 
         const relaysMessagesOf3 = messages.filter(x => x.kind === 3);
@@ -130,6 +144,8 @@
             console.log(relaysData);
             const relays: [string, RelayMeta][] = Object.entries(relaysData);
             relaysOf3 = relays.map(([ url, meta ]) => { return { url: new URL(url), read: meta.read, write: meta.write }; })
+        } else {
+            relaysOf3 = [];
         }
 
         const nprofileData = {
@@ -192,6 +208,8 @@
         <div>{pubkeyProfile}</div>
         <div class="nprofile">{nprofile}</div>
         <pre class="nprofile">{nprofileJson}</pre>
+
+        <div>Recommended relay: {recommendedRelay === '' ? '-' : recommendedRelay}</div>
     </section>
     {/if}
 
