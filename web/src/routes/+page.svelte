@@ -12,7 +12,8 @@
     let pubkey = '';
     let nprofile = '';
     let nprofileJson = '';
-    let relays: Relay[] = [];
+    let relaysOf10002: string[] = [];
+    let relaysOf3: Relay[] = [];
 
     const defaultRelays = [
         'wss://relay.damus.io',
@@ -103,19 +104,26 @@
         }
 
         // Relays
-        const regacyRelaysMessages = messages.filter(x => x?.kind === 3);
-        regacyRelaysMessages.sort((x, y) => x.created_at - y.created_at);
-        const latestRegacyRelaysMessage = regacyRelaysMessages.find(_ => true);
-        if (latestRegacyRelaysMessage !== undefined) {
-            const regacyRelaysData = JSON.parse(latestRegacyRelaysMessage.content);
-            console.log(regacyRelaysData);
-            const regacyRelays: [string, RelayMeta][] = Object.entries(regacyRelaysData);
-            relays = regacyRelays.map(([ url, meta ]) => { return { url: new URL(url), read: meta.read, write: meta.write }; })
+        const relaysMessagesOf10002 = messages.filter(x => x.kind === 10002);
+        relaysMessagesOf10002.sort((x, y) => x.created_at - y.created_at);
+        const latestRelaysMessageOf10002 = relaysMessagesOf10002.find(_ => true);
+        if (latestRelaysMessageOf10002 !== undefined) {
+            relaysOf10002 = latestRelaysMessageOf10002.tags.map(x => x[1]);
+        }
+
+        const relaysMessagesOf3 = messages.filter(x => x.kind === 3);
+        relaysMessagesOf3.sort((x, y) => x.created_at - y.created_at);
+        const latestRelaysMessageOf3 = relaysMessagesOf3.find(_ => true);
+        if (latestRelaysMessageOf3 !== undefined) {
+            const relaysData = JSON.parse(latestRelaysMessageOf3.content);
+            console.log(relaysData);
+            const relays: [string, RelayMeta][] = Object.entries(relaysData);
+            relaysOf3 = relays.map(([ url, meta ]) => { return { url: new URL(url), read: meta.read, write: meta.write }; })
         }
 
         const nprofileData = {
             pubkey,
-            relays: relays.map(x => x.url.toString()),
+            relays: relaysOf10002.length > 0 ? relaysOf10002 : relaysOf3.map(x => x.url.toString()),
         };
         nprofile = nip19.nprofileEncode(nprofileData);
         nprofileJson = JSON.stringify(nprofileData, null, 2);
@@ -126,7 +134,7 @@
         pubkey: string,
         created_at: number,
         kind: number,
-        tags: any[],
+        tags: string[][],
         content: string,
         sig: string,
     }
@@ -155,12 +163,13 @@
     <h1>nprofile</h1>
 
     <form on:submit|preventDefault={showProfile}>
-        <input type="text" bind:value={npub} placeholder="npub..." size="100" required>
+        <input type="text" name="npub" bind:value={npub} placeholder="npub..." size="100" required>
         <input type="submit" value="Show">
     </form>
     
     {#if pubkey}
     <section class="profile">
+        <h2>Profile</h2>
         <div>
             <img src="{profile.picture}" alt="">
         </div>
@@ -175,15 +184,31 @@
     </section>
     {/if}
 
-    {#if relays}
+    {#if relaysOf10002.length > 0}
     <section class="relays">
+        <h2>Relays (kind: 10002)</h2>
         <ul>
-            {#each relays as relay}
+            {#each relaysOf10002 as relay}
+                <li>
+                    <article>
+                        <div>{relay}</div>
+                    </article>
+                </li>
+            {/each}
+        </ul>
+    </section>
+    {/if}
+
+    {#if relaysOf3.length > 0}
+    <section class="relays">
+        <h2>Relays (kind: 3)</h2>
+        <ul>
+            {#each relaysOf3 as relay}
                 <li>
                     <article>
                         <div>{relay.url}</div>
-                        <div>{relay.read}</div>
-                        <div>{relay.write}</div>
+                        <div>Read: {relay.read}</div>
+                        <div>Write: {relay.write}</div>
                     </article>
                 </li>
             {/each}
