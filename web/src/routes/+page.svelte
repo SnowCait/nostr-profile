@@ -16,8 +16,8 @@
     let nprofile = '';
     let nprofileJson = '';
     let recommendedRelay = '';
-    let relaysOf10002: string[] = [];
-    let relaysOf3: Relay[] = [];
+    let relays: Relay[] = [];
+    let relaysOf3: RelayOfKind3[] = [];
     let contacts: Contact[] = [];
 
     const defaultRelays = [
@@ -96,6 +96,21 @@
         return messages.flat();
     };
 
+    async function getRelayInformation(url: string) {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/nostr+json',
+            },
+        });
+        
+        if (!response.ok) {
+            console.error(await response.text());
+        }
+
+        return await response.json();
+    }
+
     async function show() {
         console.log('[input]', input);
         const npub = input.startsWith('npub') ? input : nip19.npubEncode(input);
@@ -143,9 +158,25 @@
         relaysMessagesOf10002.sort((x, y) => x.created_at - y.created_at);
         const latestRelaysMessageOf10002 = relaysMessagesOf10002.find(_ => true);
         if (latestRelaysMessageOf10002 !== undefined) {
-            relaysOf10002 = latestRelaysMessageOf10002.tags.map(x => x[1]);
+            const promises = latestRelaysMessageOf10002.tags
+                .map(x => new URL(x[1]))
+                .map(async url => {
+                    console.log('[url]', url);
+                    try {
+                        const jsonObject = await getRelayInformation(url.origin.replace('wss://', 'https://'));
+                        jsonObject.url = url;
+                        console.log('[relay]', jsonObject);
+                        return jsonObject as Relay;
+                    } catch (error) {
+                        console.error(error);
+                        return {
+                            url,
+                        } as Relay;
+                    }
+                });
+            relays = await Promise.all(promises);
         } else {
-            relaysOf10002 = [];
+            relays = [];
         }
 
         const relaysMessagesOf3 = messages.filter(x => x.kind === 3);
@@ -162,7 +193,7 @@
 
         const nprofileData = {
             pubkey,
-            relays: relaysOf10002.length > 0 ? relaysOf10002 : relaysOf3.map(x => x.url.toString()),
+            relays: relays.length > 0 ? relays.map(x => x.url.href) : relaysOf3.map(x => x.url.toString()),
         };
         nprofile = nip19.nprofileEncode(nprofileData);
         nprofileJson = JSON.stringify(nprofileData, null, 2);
@@ -209,6 +240,46 @@
         url: URL,
         read: boolean,
         write: boolean,
+        name: string,
+        description: string,
+        pubkey: string,
+        contact: string,
+        supported_nips: number[],
+        supported_nip_extensions: string[] | undefined,
+        software: string,
+        version: string,
+        limitation: RelayLimitation | undefined,
+        payments_url: string | undefined,
+        fees: RelayFees | undefined,
+    }
+
+    interface RelayLimitation {
+        max_message_length: number,
+        max_subscriptions: number,
+        max_filters: number,
+        max_limit: number,
+        max_subid_length: number,
+        min_prefix: number,
+        max_event_tags: number,
+        max_content_length: number,
+        min_pow_difficulty: number,
+        auth_required: boolean,
+        payment_required: boolean,
+    }
+
+    interface RelayFees {
+        admission: RelayAdmission[],
+        publication: RelayPublidation[],
+    }
+
+    interface RelayAdmission {}
+
+    interface RelayPublidation {}
+
+    interface RelayOfKind3 {
+        url: URL,
+        read: boolean,
+        write: boolean,
     }
 
     interface Contact {
@@ -248,10 +319,10 @@
     <section class="relays">
         <h2>Relays (kind: 10002)</h2>
         <ul>
-            {#each relaysOf10002 as relay}
+            {#each relays as relay}
                 <li>
                     <article>
-                        <div>{relay}</div>
+                        <pre>{JSON.stringify(relay, null, 2)}</pre>
                     </article>
                 </li>
             {/each}
