@@ -290,8 +290,18 @@
     }
 </script>
 
+<svelte:head>
+    {#if pubkeyProfile}
+    <title>{profile.display_name} (@{profile.name}) - nprofile</title>
+    {:else}
+    <title>nprofile</title>
+    {/if}
+</svelte:head>
+
 <main>
-    <h1>nprofile</h1>
+    <h1>
+        <a href="./">nprofile</a>
+    </h1>
 
     <form>
         <input type="text" name="p" bind:value={input} placeholder="npub or hex" size="100" required>
@@ -370,6 +380,15 @@
     main {
         max-width: 800px;
         margin: 0 auto;
+    }
+
+    h1 {
+        color: purple;
+    }
+
+    h1 a:link {
+        color: inherit;
+        text-decoration: none;
     }
 
     img {
